@@ -57,7 +57,7 @@ export default class RedmineSprint {
 			// use the convenience function "AnimateTo" instead of creating the animation data in advance
 			MRE.Animation.AnimateTo(this.context, this.text, {
 				destination: { transform: {
-				  local: { scale: { x: 1.3, y: 1.3, z: 1.3 } }
+					local: { scale: { x: 1.3, y: 1.3, z: 1.3 } }
 				} },
 				duration: 0.3,
 				easing: MRE.AnimationEaseCurves.EaseOutSine
@@ -86,19 +86,19 @@ export default class RedmineSprint {
 			let body = "";
 	
 			res.on("data", (chunk) => {
-					body += chunk;
+				body += chunk;
 			});
 	
 			res.on("end", () => {
-					try {
-							let json = JSON.parse(body);
-							this.text.text.contents = `${json.total_count} tickets to estimate`;
-					} catch (error) {
-							console.error(error.message);
-					};
+				try {
+					const json = JSON.parse(body);
+					this.text.text.contents = `${json.total_count} tickets to estimate`;
+				} catch (error) {
+					console.error(error.message)
+				}
 			});
 		}).on("error", (error) => {
-				console.error(error.message);
+			console.error(error.message);
 		});
 	}
 }

@@ -92,7 +92,7 @@ export default class RedmineSprint {
 			res.on("end", () => {
 				try {
 					const json = JSON.parse(body);
-					this.text.text.contents = `${json.total_count} tickets to estimate`;
+					this.text.text.contents = `${json.total_count} tickets to estimate by Philip`;
 				} catch (error) {
 					console.error(error.message)
 				}

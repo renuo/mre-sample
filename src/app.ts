@@ -91,7 +91,7 @@ export default class PollManager {
 	}
 
 	private attachPollDevice(user: User) {
-
+		// TODO fabian add buttons
 
 	}
 }

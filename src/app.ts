@@ -15,6 +15,7 @@ export default class PollManager {
 	private assets: MRE.AssetContainer;
 	private pollRunning = false;
 	private pollResults: string[] = [];
+	private voteButtons: MRE.Actor[] = [];
 
 	constructor(private context: MRE.Context) {
 		this.context.onStarted(() => this.started());
@@ -79,19 +80,74 @@ export default class PollManager {
 				console.log('Stopping poll');
 				console.log(this.pollResults);
 				this.pollResults = [];
+				this.removePollDevices();
 			} else {
 				this.pollRunning = true
 				pollButtonMaterial.color = Color4.FromColor3(red);
 				console.log('Starting poll');
-				this.context.users.forEach((u) => this.attachPollDevice(u))
+				this.attachPollDevices();
 			}
 
 			//console.log(this.moderators().map(u => u.name))
 		});
 	}
 
-	private attachPollDevice(user: User) {
-		// TODO fabian add buttons
+	private removePollDevices() {
+		this.voteButtons.forEach((button) => {button.destroy()});
+	}
+
+	private attachPollDevices() {
+		this.context.users.forEach((user) => {
+			const baseCylinder = this.assets.createCylinderMesh('cylinder', 0.01, 0.09, 'z');
+			const red = Color3.FromHexString('#FF0000');
+			const green = Color3.FromHexString('#00FF00');
+			const blue = Color3.FromHexString('#0000FF');
+			const yellow = Color3.FromHexString('#FFFF00');
+			const materials = [
+				this.assets.createMaterial('redMaterial', { color: red }),
+				this.assets.createMaterial('greenMaterial', { color: green }),
+				this.assets.createMaterial('blueMaterial', { color: blue }),
+				this.assets.createMaterial('yellowButtonMaterial', { color: yellow }),
+			]
+			const buttonTexts = ['A', 'B', 'C', 'D'];
+
+			materials.forEach((material, index) => {
+				const column = index % 2;
+				const row = Math.round((index + 1) / 2) - 1;
+
+				const voteButton = MRE.Actor.Create(this.context, {
+					actor: {
+						transform: { local: { position: { x: -0.1 + column * 0.2, y: 0.1 - row * 0.2, z: 0.5 }}},
+						// it's a black cube
+						appearance: {
+							meshId: baseCylinder.id,
+							materialId: material.id
+						},
+						// with an auto-sized collider on it
+						collider: { geometry: { shape: MRE.ColliderType.Auto }},
+						exclusiveToUser: user.id,
+						attachment: {
+							attachPoint: 'center-eye',
+							userId: user.id
+						}
+					}
+				});
+
+				const buttonText = MRE.Actor.Create(this.context, {
+					actor: {
+						parentId: voteButton.id,
+						transform: {local: {position: {x: 0, y: 0, z: -0.0051}}},
+						text: {
+							contents: buttonTexts[index],
+							anchor: MRE.TextAnchorLocation.MiddleCenter,
+							height: 0.1
+						}
+					}
+				})
+
+				this.voteButtons.push(voteButton);
+			})
+		})
 
 	}
 }

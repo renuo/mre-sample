@@ -4,22 +4,20 @@
  */
 
 import * as MRE from '@microsoft/mixed-reality-extension-sdk';
-import {Color3, User} from '@microsoft/mixed-reality-extension-sdk';
+import {Color3, Color4, User} from '@microsoft/mixed-reality-extension-sdk';
 import * as https from 'https';
 
 /**
  * The main class of this app. All the logic goes here.
  */
-export default class RedmineSprint {
-	private handheld: MRE.Actor = null;
+export default class PollManager {
+	private adminPollDevice: MRE.Actor = null;
 	private assets: MRE.AssetContainer;
-	private moderators: User[];
+	private pollRunning = false;
+	private pollResults: string[] = [];
 
 	constructor(private context: MRE.Context) {
-		this.moderators = [];
 		this.context.onStarted(() => this.started());
-		this.context.onUserJoined((user) => this.userJoined(user));
-		this.context.onUserLeft((user) => this.userLeft(user));
 	}
 
 	/**
@@ -28,19 +26,28 @@ export default class RedmineSprint {
 	private started() {
 		// set up somewhere to store loaded assets (meshes, textures, animations, gltfs, etc.)
 		this.assets = new MRE.AssetContainer(this.context);
-		this.handheld = MRE.Actor.Create(this.context, {});
+		this.createAdminPollDevice();
+	}
+
+	private moderators(): User[] {
+		return this.context.users.filter((u) => u.properties['altspacevr-roles'].includes('moderator'));
+	}
+
+	private createAdminPollDevice() {
+		this.adminPollDevice = MRE.Actor.Create(this.context, {});
 
 		const red = Color3.FromHexString('#FF0000');
-		const buttonAMesh = this.assets.createCylinderMesh('buttonAMesh', 0.01, 0.3, 'z');
-		const buttonAMaterial = this.assets.createMaterial('buttonAMaterial', { color: red });
+		const green = Color3.FromHexString('#00FF00');
+		const pollButtonMesh = this.assets.createCylinderMesh('pollButtonMesh', 0.01, 0.3, 'z');
+		const pollButtonMaterial = this.assets.createMaterial('pollButtonMaterial', { color: green });
 
-		const buttonA = MRE.Actor.Create(this.context, {
+		const pollButton = MRE.Actor.Create(this.context, {
 			actor: {
-				parentId: this.handheld.id,
-				name: 'buttonA',
+				parentId: this.adminPollDevice.id,
+				name: 'pollButton',
 				appearance: {
-					meshId: buttonAMesh.id,
-					materialId: buttonAMaterial.id,
+					meshId: pollButtonMesh.id,
+					materialId: pollButtonMaterial.id,
 				},
 				collider: { geometry: { shape: MRE.ColliderType.Auto } },
 				transform: {
@@ -49,38 +56,42 @@ export default class RedmineSprint {
 			}
 		});
 
-		const buttonBehavior = buttonA.setBehavior(MRE.ButtonBehavior);
+		const buttonBehavior = pollButton.setBehavior(MRE.ButtonBehavior);
 
 		buttonBehavior.onHover('enter', () => {
-			MRE.Animation.AnimateTo(this.context, buttonA, {
+			MRE.Animation.AnimateTo(this.context, pollButton, {
 				destination: { transform: { local: { scale: { x: 1.3, y: 1.3, z: 1.3 } } } },
 				duration: 0.3,
 				easing: MRE.AnimationEaseCurves.EaseOutSine
 			});
 		});
 		buttonBehavior.onHover('exit', () => {
-			MRE.Animation.AnimateTo(this.context, buttonA, {
+			MRE.Animation.AnimateTo(this.context, pollButton, {
 				destination: { transform: { local: { scale: { x: 1, y: 1, z: 1 } } } },
 				duration: 0.3,
 				easing: MRE.AnimationEaseCurves.EaseOutSine
 			});
 		});
 		buttonBehavior.onClick(() => {
-			console.log('vote A')
+			if (this.pollRunning) {
+				this.pollRunning = false
+				pollButtonMaterial.color = Color4.FromColor3(green);
+				console.log('Stopping poll');
+				console.log(this.pollResults);
+				this.pollResults = [];
+			} else {
+				this.pollRunning = true
+				pollButtonMaterial.color = Color4.FromColor3(red);
+				console.log('Starting poll');
+				this.context.users.forEach((u) => this.attachPollDevice(u))
+			}
+
+			//console.log(this.moderators().map(u => u.name))
 		});
 	}
 
-	private userJoined(user: User) {
-		if (user.properties['altspacevr-roles'].includes('moderator')) {
-			this.moderators.push(user);
-			console.log(this.moderators.map(u => u.name));
-		}
-	}
+	private attachPollDevice(user: User) {
 
-	private userLeft(user: User) {
-		if (user.properties['altspacevr-roles'].includes('moderator')) {
-			this.moderators = this.moderators.filter(u => u !== user)
-			console.log(this.moderators.map(u => u.name));
-		}
+
 	}
 }

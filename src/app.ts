@@ -4,7 +4,7 @@
  */
 
 import * as MRE from '@microsoft/mixed-reality-extension-sdk';
-import {Color3, Color4, User} from '@microsoft/mixed-reality-extension-sdk';
+import {Actor, Color3, Color4, User} from '@microsoft/mixed-reality-extension-sdk';
 import * as https from 'https';
 
 /**
@@ -30,7 +30,7 @@ export default class PollManager {
 		this.createAdminPollDevice();
 	}
 
-	private moderators(): User[] {
+	private get moderators(): User[] {
 		return this.context.users.filter((u) => u.properties['altspacevr-roles'].includes('moderator'));
 	}
 
@@ -77,26 +77,29 @@ export default class PollManager {
 			if (this.pollRunning) {
 				this.pollRunning = false
 				pollButtonMaterial.color = Color4.FromColor3(green);
+				this.removePollDevices();
 				console.log('Stopping poll');
 				console.log(this.pollResults);
+				this.moderators.forEach(user => user.prompt(`Poll results: ${this.pollResults}`));
 				this.pollResults = [];
-				this.removePollDevices();
 			} else {
 				this.pollRunning = true
 				pollButtonMaterial.color = Color4.FromColor3(red);
 				console.log('Starting poll');
 				this.attachPollDevices();
 			}
-
-			//console.log(this.moderators().map(u => u.name))
 		});
 	}
 
 	private removePollDevices() {
-		this.voteButtons.forEach((button) => {button.destroy()});
+		this.voteButtons.forEach(button => button.destroy());
 	}
 
 	private attachPollDevices() {
+		const thankyou = this.assets.createSound('thankyou', {
+			uri: 'https://upload.wikimedia.org/wikipedia/commons/b/bf/En-us-thanks.ogg'
+		});
+
 		this.context.users.forEach((user) => {
 			const baseCylinder = this.assets.createCylinderMesh('cylinder', 0.01, 0.09, 'z');
 			const red = Color3.FromHexString('#FF0000');
@@ -111,20 +114,19 @@ export default class PollManager {
 			]
 			const buttonTexts = ['A', 'B', 'C', 'D'];
 
-			materials.forEach((material, index) => {
+			const voteButtons = materials.map((material, index) => {
 				const column = index % 2;
 				const row = Math.round((index + 1) / 2) - 1;
+				const buttonText = buttonTexts[index];
 
 				const voteButton = MRE.Actor.Create(this.context, {
 					actor: {
-						transform: { local: { position: { x: -0.1 + column * 0.2, y: 0.1 - row * 0.2, z: 0.5 }}},
-						// it's a black cube
+						transform: {local: {position: {x: -0.1 + column * 0.2, y: 0.1 - row * 0.2, z: 0.5}}},
 						appearance: {
 							meshId: baseCylinder.id,
 							materialId: material.id
 						},
-						// with an auto-sized collider on it
-						collider: { geometry: { shape: MRE.ColliderType.Auto }},
+						collider: {geometry: {shape: MRE.ColliderType.Auto}},
 						exclusiveToUser: user.id,
 						attachment: {
 							attachPoint: 'center-eye',
@@ -133,20 +135,43 @@ export default class PollManager {
 					}
 				});
 
-				const buttonText = MRE.Actor.Create(this.context, {
+				MRE.Actor.Create(this.context, {
 					actor: {
 						parentId: voteButton.id,
 						transform: {local: {position: {x: 0, y: 0, z: -0.0051}}},
 						text: {
-							contents: buttonTexts[index],
+							contents: buttonText,
 							anchor: MRE.TextAnchorLocation.MiddleCenter,
 							height: 0.1
 						}
 					}
 				})
 
-				this.voteButtons.push(voteButton);
+				const buttonBehavior = voteButton.setBehavior(MRE.ButtonBehavior);
+				buttonBehavior.onClick(() => {
+					//voteButton.startSound(thankyou.id, {time: 0});
+					this.pollResults.push(buttonText);
+					voteButtons.forEach(b => b.destroy());
+				});
+				buttonBehavior.onHover('enter', () => {
+					MRE.Animation.AnimateTo(this.context, voteButton, {
+						destination: { transform: { local: { scale: { x: 1.3, y: 1.3, z: 1.3 } } } },
+						duration: 0.3,
+						easing: MRE.AnimationEaseCurves.EaseOutSine
+					});
+				});
+				buttonBehavior.onHover('exit', () => {
+					MRE.Animation.AnimateTo(this.context, voteButton, {
+						destination: { transform: { local: { scale: { x: 1, y: 1, z: 1 } } } },
+						duration: 0.3,
+						easing: MRE.AnimationEaseCurves.EaseOutSine
+					});
+				});
+
+				return voteButton;
 			})
+
+			voteButtons.forEach(b => this.voteButtons.push(b))
 		})
 
 	}

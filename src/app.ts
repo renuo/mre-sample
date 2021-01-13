@@ -4,7 +4,7 @@
  */
 
 import * as MRE from '@microsoft/mixed-reality-extension-sdk';
-import { Color3 } from '@microsoft/mixed-reality-extension-sdk';
+import {Color3, User} from '@microsoft/mixed-reality-extension-sdk';
 import * as https from 'https';
 
 /**
@@ -16,6 +16,7 @@ export default class RedmineSprint {
 
 	constructor(private context: MRE.Context) {
 		this.context.onStarted(() => this.started());
+		this.context.onUserJoined((user) => this.userJoined(user));
 	}
 
 	/**
@@ -64,5 +65,9 @@ export default class RedmineSprint {
 		buttonBehavior.onClick(() => {
 			console.log('vote A')
 		});
+	}
+
+	private userJoined(user: User) {
+		console.log(user.properties)
 	}
 }

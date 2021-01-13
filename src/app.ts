@@ -13,10 +13,13 @@ import * as https from 'https';
 export default class RedmineSprint {
 	private handheld: MRE.Actor = null;
 	private assets: MRE.AssetContainer;
+	private moderators: User[];
 
 	constructor(private context: MRE.Context) {
+		this.moderators = [];
 		this.context.onStarted(() => this.started());
 		this.context.onUserJoined((user) => this.userJoined(user));
+		this.context.onUserLeft((user) => this.userLeft(user));
 	}
 
 	/**
@@ -68,6 +71,16 @@ export default class RedmineSprint {
 	}
 
 	private userJoined(user: User) {
-		console.log(user.properties)
+		if (user.properties['altspacevr-roles'].includes('moderator')) {
+			this.moderators.push(user);
+			console.log(this.moderators.map(u => u.name));
+		}
+	}
+
+	private userLeft(user: User) {
+		if (user.properties['altspacevr-roles'].includes('moderator')) {
+			this.moderators = this.moderators.filter(u => u !== user)
+			console.log(this.moderators.map(u => u.name));
+		}
 	}
 }

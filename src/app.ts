@@ -56,6 +56,17 @@ export default class PollManager {
 				}
 			}
 		});
+		const pollText = MRE.Actor.Create(this.context, {
+			actor: {
+				parentId: pollButton.id,
+				transform: {local: {position: {x: 0, y: 0, z: -0.0051}}},
+				text: {
+					contents: 'Start poll',
+					anchor: MRE.TextAnchorLocation.MiddleCenter,
+					height: 0.1
+				}
+			}
+		})
 
 		const buttonBehavior = pollButton.setBehavior(MRE.ButtonBehavior);
 
@@ -77,6 +88,7 @@ export default class PollManager {
 			if (this.pollRunning) {
 				this.pollRunning = false
 				pollButtonMaterial.color = Color4.FromColor3(green);
+				pollText.text.contents = 'Poll again'
 				this.removePollDevices();
 				console.log('Stopping poll');
 				console.log(this.pollResults);
@@ -85,6 +97,7 @@ export default class PollManager {
 			} else {
 				this.pollRunning = true
 				pollButtonMaterial.color = Color4.FromColor3(red);
+				pollText.text.contents = 'End poll'
 				console.log('Starting poll');
 				this.attachPollDevices();
 			}

@@ -162,7 +162,7 @@ export default class PollManager {
 
 				const buttonBehavior = voteButton.setBehavior(MRE.ButtonBehavior);
 				buttonBehavior.onClick(() => {
-					//voteButton.startSound(thankyou.id, {time: 0});
+					this.adminPollDevice.startSound(thankyou.id, {time: 0});
 					this.pollResults.push(buttonText);
 					voteButtons.forEach(b => b.destroy());
 				});
